@@ -2143,12 +2143,17 @@ işlev aramayı_başlat(s:adres,n:i64) {
     eğer süre>=0 { süre_optimum=süre; süre_azami=süre; }
     yoksa eğer !sonsuz && kalan>=0 {
 
-        kullanılabilir:=ençok(1,kalan-kalan/25-50); tavan:=ençok(1,kullanılabilir/4);
+        kullanılabilir:=ençok(1,kalan-kalan/20-100); tavan:=ençok(1,kullanılabilir/4);
         ufuk:=seç(hamle_verildi,hamle_kaldı,ençok(16,50-oyun.tam*2/3));
-        pay:=kullanılabilir/ençok(1,ufuk)+ek*9/10;
+        pay:=kullanılabilir/ençok(1,ufuk)+enaz(ek*3/4,kullanılabilir/4);
         eğer !hamle_verildi { pay=pay*seç(oyun.tam<8,80,seç(oyun.tam<=40,140,100))/100; }
         eğer rakip_kalan>0 && kalan>rakip_kalan { pay+=pay*enaz(50,(kalan-rakip_kalan)*50/kalan)/100; }
-        süre_optimum=ençok(1,enaz(pay,tavan)); süre_azami=ençok(süre_optimum,enaz(süre_optimum*3,tavan)); süre=süre_azami;
+        süre_optimum=ençok(1,enaz(pay,tavan)); süre_azami=ençok(süre_optimum,enaz(süre_optimum*seç(kalan<10000,2,3),tavan)); süre=süre_azami;
+        eğer kalan<=10000 {
+            süre_optimum=ençok(1,enaz(süre_optimum,kalan/20));
+            süre_azami=ençok(süre_optimum,enaz(süre_azami,ençok(1,kalan/10))); süre=süre_azami;
+        }
+        eğer kök_sayısı==1 { süre_optimum=1; süre_azami=ençok(2,enaz(süre_azami,50)); süre=süre_azami; }
     }
     düşünme_süresi=süre; atomik_yaz(&sonuç_beklesin,sonsuz||rakip_sırası);
     eğer süre>=0 && !rakip_sırası { son_zaman=başlangıç_zamanı+ençok(1,süre-2)*1000000; }
