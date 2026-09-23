@@ -4,6 +4,14 @@ UCI chess engine in T. The compiler is `t.lua`. It emits native code for macOS a
 
 The engine is `tonyukuk.t`: bitboards, Chess960, PVS, quiescence, transposition table, Lazy SMP, Syzygy, Polyglot, NNUE.
 
+## Download
+
+- [Windows x86_64 AVX2](https://github.com/cturan/Tonyukuk/releases/download/0.1-dev/tonyukuk-0.1-dev-windows-x86_64-avx2.exe)
+- [Windows x86_64 AVX](https://github.com/cturan/Tonyukuk/releases/download/0.1-dev/tonyukuk-0.1-dev-windows-x86_64-avx.exe)
+- [macOS Apple silicon](https://github.com/cturan/Tonyukuk/releases/download/0.1-dev/tonyukuk-0.1-dev-macos-arm64-neon)
+
+Other builds are on the [releases page](https://github.com/cturan/Tonyukuk/releases).
+
 ## Build
 
 Lua 5.4 or newer.
