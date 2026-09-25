@@ -42,8 +42,10 @@ Options: `Threads`, `Hash`, `MultiPV`, `Ponder`, `EvalFile`, `SyzygyPath`, `Syzy
 
 ## Network
 
-`netv2.tnnk` (19 MB): 768 king-bucketed inputs, 768 -> 32 -> 16, four phase heads, PSQT. Bootstrapped on Stockfish 19 self-play positions, then trained on Tonyukuk self-play data.
+`netv2.tnnk` (19 MB): 768 king-bucketed inputs, 768 -> 32 -> 16, four phase heads, PSQT. Bootstrapped on self-play data generated with Stockfish 19 on EPYC servers ([cturan/tonyukuk](https://huggingface.co/datasets/cturan/tonyukuk)), then next generations trained on Tonyukuk self-play data.
 
 ## License
 
 MIT
+
+Syzygy probing is inspired by Ronald de Man's tablebase code. Search and evaluation ideas are inspired by the Stockfish project.
