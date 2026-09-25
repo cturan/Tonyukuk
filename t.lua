@@ -674,14 +674,20 @@ function Y.kurucu(C)
     local op=ikili_op[n[4]]
     local sn=C.sayisal[t]
     local isaretsiz=(sn and not sn[2]) and true or false
-    if l[1]=='var' and not l.global and not l.binding.addressed then
-      local eski=Y.oku(f,st.b,l.binding)
-      local sag=B.ifade(f,st,n[3])
+
+    local fop=sn and sn.float and fikili_op[n[4]]
+    if sn and sn.float and not fop then C.hata('YB: kayan noktali bilesik atama '..tostring(n[4])) end
+    local function hesapla(eski,sag)
+      if fop then return Y.ek(f,st.b,{op=fop,a=eski,b=sag,ft=t}) end
       if n[4]=='>>' and sn[1]<64 then
         eski=Y.ek(f,st.b,{op='genislet',a=eski,bit=sn[1],isaretli=not isaretsiz})
       end
-      local d=Y.ek(f,st.b,{op=op,a=eski,b=sag,isaretsiz=isaretsiz})
-      Y.yaz(f,st.b,l.binding,B.normal(f,st.b,d,t))
+      return B.normal(f,st.b,Y.ek(f,st.b,{op=op,a=eski,b=sag,isaretsiz=isaretsiz}),t)
+    end
+    if l[1]=='var' and not l.global and not l.binding.addressed then
+      local eski=Y.oku(f,st.b,l.binding)
+      local sag=B.ifade(f,st,n[3])
+      Y.yaz(f,st.b,l.binding,hesapla(eski,sag))
       return
     end
     local adres,sinif
@@ -698,12 +704,7 @@ function Y.kurucu(C)
     local eski=Y.ek(f,st.b,{op='yukle',a=adres,bit=bit,
       isaretli=(sn and sn[2]) and true or false,sinif=sinif})
     local sag=B.ifade(f,st,n[3])
-    if n[4]=='>>' and sn[1]<64 then
-      eski=Y.ek(f,st.b,{op='genislet',a=eski,bit=sn[1],isaretli=not isaretsiz})
-    end
-    local d=Y.ek(f,st.b,{op=op,a=eski,b=sag,isaretsiz=isaretsiz})
-    d=B.normal(f,st.b,d,t)
-    Y.ek(f,st.b,{op='sakla',a=adres,b=d,bit=bit,sinif=sinif})
+    Y.ek(f,st.b,{op='sakla',a=adres,b=hesapla(eski,sag),bit=bit,sinif=sinif})
   end
 
   function B.kosul_deyimi(f,st,n)
@@ -985,6 +986,39 @@ function Y.gruplar(f,H)
     end
   end
   f.abi_tercih=abi
+end
+
+function Y.kiyas_cogalt(f,H)
+  local sec_ok=not (H and H.sec_kaynastirma_yok)
+  local u=Y.kullanim(f)
+  local degisti=false
+  for _,b in ipairs(f.bloklar) do
+    local yeni={}
+    for _,id in ipairs(b.k) do
+      local t=f.d[id]
+      if (t.op=='kosul' or (t.op=='sec' and sec_ok)) and t.a then
+        local c=f.d[t.a]
+        local onceki=yeni[#yeni] and f.d[yeni[#yeni]]
+        if c and c.op=='kiyas' and t.op=='sec' and onceki and onceki.op=='sec'
+           and onceki.cogul==t.a then
+
+          local k=onceki.a
+          f.d[k].kaynasik=true; onceki.kaynasik_kiyas=k
+          u[t.a]=u[t.a]-1; t.cogul=t.a; t.a=k; t.kaynasik_kiyas=k; t.bayrak_yeniden=true
+          degisti=true
+        elseif c and c.op=='kiyas' and (u[t.a]>1 or c.blok~=b) and yeni[#yeni]~=t.a then
+          f.n=f.n+1
+          local k={}
+          for anahtar,v in pairs(c) do k[anahtar]=v end
+          k.id=f.n; k.blok=b; f.d[f.n]=k; yeni[#yeni+1]=f.n
+          u[t.a]=u[t.a]-1; u[f.n]=1; t.cogul=t.a; t.a=f.n; degisti=true
+        end
+      end
+      yeni[#yeni+1]=id
+    end
+    b.k=yeni
+  end
+  if degisti then Y.olu_ele(f) end
 end
 
 function Y.kaynastir(f,H)
@@ -1596,7 +1630,10 @@ function A.yeni(f,E,H)
       u32(0x9a9f07e0|((c~1)<<12)|d)
     elseif op=='sec' then
       local c
-      if t.kaynasik_kiyas then c=M.kiyas_uret(f.d[t.kaynasik_kiyas])
+      if t.bayrak_yeniden then
+
+        local k=f.d[t.kaynasik_kiyas]; c=(k.isaretsiz and A.kosul_u or A.kosul)[k.iliski]
+      elseif t.kaynasik_kiyas then c=M.kiyas_uret(f.d[t.kaynasik_kiyas])
       else u32(0xf100001f|(M.oku(t.a,1)<<5)); c=1 end
       u32(0x9a800000|(M.oku(t.c,2)<<16)|(c<<12)|(M.oku(t.b,3)<<5)|d)
     elseif op=='genislet' then M.genislet_uret(t,d)
@@ -1948,11 +1985,15 @@ function Y.derle(fn,E,H)
     Y.olu_ele(f)
     Y.licm(f)
     Y.olu_ele(f)
+
+    Y.konumla(f)
+    if Y.gvn(f) then Y.kopyalari_coz(f); Y.olu_ele(f) end
   end
   H=Y.cerceve_sec(f,H)
   Y.kenar_bol(f)
   Y.sirala(f)
   if (E.opt or 2)>0 then Y.baskinlik(f); Y.yerlesim(f); Y.baskinlik(f) end
+  if (E.opt or 2)>0 then Y.kiyas_cogalt(f,H) end
   Y.kullanim(f)
   Y.kaynastir(f,H)
   Y.yuk_kaynastir(f,H)
@@ -2057,6 +2098,20 @@ local function imza(t,f)
   return table.concat(p,'|')
 end
 
+function Y.mantiksal_mi(f,id,derin)
+  local t=f.d[id]
+  if not t or derin>6 then return false end
+  if t.op=='kiyas' or t.op=='fkiyas' then return true end
+  if t.op=='sabit' then return t.s==0 or t.s==1 end
+  if t.op=='ve' then return Y.mantiksal_mi(f,t.a,derin+1) or Y.mantiksal_mi(f,t.b,derin+1) end
+  if t.op=='veya' or t.op=='xor' or t.op=='sec' then
+    local x,y=t.a,t.b
+    if t.op=='sec' then x,y=t.b,t.c end
+    return Y.mantiksal_mi(f,x,derin+1) and Y.mantiksal_mi(f,y,derin+1)
+  end
+  return false
+end
+
 function Y.katla(f)
   local degisti=false
   Y.kullanim(f)
@@ -2123,6 +2178,9 @@ function Y.katla(f)
         if c then t.a=(c~=0) and t.b or t.c; yeni='kopya' end
       end
 
+      if yeni==nil and op=='kiyas' and t.iliski=='!=' and y==0 and not x
+         and Y.mantiksal_mi(f,t.a,0) then yeni='kopya' end
+
       if yeni==nil and (op=='sola' or op=='carp') and t.a and t.b and y then
         local ic=f.d[t.a]
         local yc=ic.b and sb(ic.b)
@@ -2188,11 +2246,13 @@ function Y.adres_katla(f)
         while devam and tur<8 do
           devam=false; tur=tur+1
           local tt=f.d[taban]
-          if tt.op=='topla' and u[taban]==1 then
+
+          local sabitli=tt.op=='topla' and (sb(tt.a) or sb(tt.b))
+          if tt.op=='topla' and (u[taban]==1 or sabitli) then
             local sa,sb2=sb(tt.a),sb(tt.b)
             if sb2 then ofset=ofset+sb2; taban=tt.a; devam=true
             elseif sa then ofset=ofset+sa; taban=tt.b; devam=true
-            elseif not indeks then
+            elseif not indeks and u[taban]==1 then
 
               local ta,tb=f.d[tt.a],f.d[tt.b]
               if tb.op=='carp' and u[tt.b]==1 and sb(tb.b)==genislik and genislik>1 then
@@ -2299,6 +2359,53 @@ function Y.sihir_isaretsiz(d)
   return q2+1,p-64,ekle
 end
 
+function Y.bit_siniri(f,id,derin)
+  local t=f.d[id]
+  if not t or derin>10 then return nil end
+  local function bs(x) return Y.bit_siniri(f,x,derin+1) end
+  local function sabit(x) local c=f.d[x]; if c and c.op=='sabit' then return c.s end end
+  local op=t.op
+  if op=='sabit' then
+    if t.s<0 then return nil end
+    local n,v=0,t.s; while v>0 do n=n+1; v=v>>1 end; return n
+  elseif op=='yukle' then
+    if t.bit<64 and not t.isaretli then return t.bit end
+  elseif op=='kiyas' or op=='fkiyas' then return 1
+  elseif op=='kopya' then return bs(t.a)
+  elseif op=='ve' then
+    local x,y=bs(t.a),bs(t.b)
+    if x and y then return math.min(x,y) end
+    return x or y
+  elseif op=='veya' or op=='xor' then
+    local x,y=bs(t.a),bs(t.b)
+    if x and y then return math.max(x,y) end
+  elseif op=='saga' then
+    local c=sabit(t.b)
+    if c and c>0 and c<64 then
+      local x=bs(t.a)
+      if x then return math.max(0,x-c) end
+      if t.isaretsiz then return 64-c end
+    end
+  elseif op=='sola' then
+    local c=sabit(t.b); local x=bs(t.a)
+    if c and c>=0 and x and x+c<=62 then return x+c end
+  elseif op=='topla' then
+    local x,y=bs(t.a),bs(t.b)
+    if x and y and math.max(x,y)+1<=62 then return math.max(x,y)+1 end
+  elseif op=='carp' then
+    local x,y=bs(t.a),bs(t.b)
+    if x and y and x+y<=62 then return x+y end
+  elseif op=='sec' then
+    local x,y=bs(t.b),bs(t.c)
+    if x and y then return math.max(x,y) end
+  elseif op=='genislet' then
+    local x=bs(t.a)
+    if x and x<t.bit then return x end
+    if not t.isaretli then return x and math.min(x,t.bit) or t.bit end
+  end
+  return nil
+end
+
 function Y.bolme_indir(f)
   local degisti=false
   for _,b in ipairs(f.bloklar) do
@@ -2322,10 +2429,14 @@ function Y.bolme_indir(f)
           local q
           local us=nil
           if d>0 and (d&(d-1))==0 then us=0; while (1<<us)~=d do us=us+1 end end
-          if d==1 then q=x
+
+          local isaretsiz=t.isaretsiz or (d>0 and Y.bit_siniri(f,x,0)~=nil and Y.bit_siniri(f,x,0)<=63)
+          if isaretsiz and us and kalan and us>0 then
+            q=ekle({op='ve',a=x,b=Y.sabit(f,d-1)}); kalan=false
+          elseif d==1 then q=x
           elseif not t.isaretsiz and d==-1 then
             q=ekle({op='tersle',a=x})
-          elseif t.isaretsiz and us then
+          elseif isaretsiz and us then
             q=(us==0) and x or ekle({op='saga',a=x,b=Y.sabit(f,us),isaretsiz=true})
           elseif not t.isaretsiz and us then
             if us==0 then q=x else
@@ -2334,7 +2445,7 @@ function Y.bolme_indir(f)
               local a2=ekle({op='topla',a=x,b=m})
               q=ekle({op='saga',a=a2,b=Y.sabit(f,us),isaretsiz=false})
             end
-          elseif t.isaretsiz then
+          elseif isaretsiz then
             local M,sh,ekle_bayrak=Y.sihir_isaretsiz(d)
             local h=ekle({op='carp_yuksek',a=x,b=Y.sabit(f,M)})
             if ekle_bayrak then
@@ -3478,6 +3589,8 @@ function Y.konumla(f)
     for _,id in ipairs(b.k) do p=p+4; f.d[id].konum=p end
     p=p+4
     b.bit=p
+
+    p=p+4
   end
   f.son_konum=p+4
 end
@@ -3584,7 +3697,10 @@ function Y.araliklar(f,H)
         if t.op~='phi' then break end
         for _,g in ipairs(t.girdi) do
           if g[1]==b then
-            local it=al(g[2]); ekle_aralik(it,b.bas,b.bit); it.u[#it.u+1]=b.bit
+
+            local tg=f.d[g[2]]
+            local bas=(tg and tg.blok==b and tg.op~='phi' and tg.konum) and tg.konum+2 or b.bas
+            local it=al(g[2]); ekle_aralik(it,bas,b.bit); it.u[#it.u+1]=b.bit
           end
         end
       end
