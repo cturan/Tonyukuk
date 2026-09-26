@@ -3146,7 +3146,7 @@ işlev ana():i64 {
         eğer metin_eşit(komut,"quit") { kır; }
         yoksa eğer metin_eşit(komut,"uci") {
             kilit_al(&çıktı_kilidi);
-            metin_satırı("id name Tonyukuk 0.1-dev"); metin_satırı("id author Cetin Turan");
+            metin_satırı("id name Tonyukuk 0.2-dev"); metin_satırı("id author Cetin Turan");
             metin_satırı("option name UCI_Chess960 type check default false");
             metin_satırı("option name Threads type spin default 1 min 1 max 512");
             metin_satırı("option name Hash type spin default 16 min 1 max 16384");

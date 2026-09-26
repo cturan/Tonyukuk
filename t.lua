@@ -3846,7 +3846,7 @@ local function fail(s)
   error(s:match(':%d+: ') and s or (at[1]..':'..at[2]..': '..s),0)
 end
 if path=='--help' or path=='-h' then
-  print('T 0.7: lua derleyici/t.lua kaynak.t --arch macos|windows|linux --cpu arm64|x86_64 --instruction auto|scalar|neon|sse2|avx|avx2|avx512|avx512bw --arka yeni|eski --avx512 evet|hayır --opt 0|2 --gom dosya --output dosya')
+  print('T 0.8: lua derleyici/t.lua kaynak.t --arch macos|windows|linux --cpu arm64|x86_64 --instruction auto|scalar|neon|sse2|avx|avx2|avx512|avx512bw --arka yeni|eski --avx512 evet|hayır --opt 0|2 --gom dosya --output dosya')
   return
 end
 local optimization=2;local symbol_map;local arka='yeni';local dokum;local yb_inline=28

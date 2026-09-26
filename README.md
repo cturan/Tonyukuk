@@ -8,9 +8,9 @@ Estimated strength is above 3300 Elo, but has not been officially measured on an
 
 ## Download
 
-- [Windows x86_64 AVX2](https://github.com/cturan/Tonyukuk/releases/download/0.1-dev/tonyukuk-0.1-dev-windows-x86_64-avx2.exe)
-- [Windows x86_64 AVX](https://github.com/cturan/Tonyukuk/releases/download/0.1-dev/tonyukuk-0.1-dev-windows-x86_64-avx.exe)
-- [macOS Apple silicon](https://github.com/cturan/Tonyukuk/releases/download/0.1-dev/tonyukuk-0.1-dev-macos-arm64-neon)
+- [Windows x86_64 AVX2](https://github.com/cturan/Tonyukuk/releases/download/0.2-dev/tonyukuk-0.2-dev-windows-x86_64-avx2.exe)
+- [Windows x86_64 AVX](https://github.com/cturan/Tonyukuk/releases/download/0.2-dev/tonyukuk-0.2-dev-windows-x86_64-avx.exe)
+- [macOS Apple silicon](https://github.com/cturan/Tonyukuk/releases/download/0.2-dev/tonyukuk-0.2-dev-macos-arm64-neon)
 
 Other builds are on the [releases page](https://github.com/cturan/Tonyukuk/releases).
 
